@@ -1,0 +1,15 @@
+# Apache 共享主机部署：将所有非静态文件请求重写到 public/index.php
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 直接访问 app/ config/ sql/ runtime/ 等敏感目录 → 403
+    RewriteRule ^(app|config|sql|runtime)/ - [F,L]
+
+    # 已存在的真实文件（如 favicon.ico）直接返回
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 其余全部交给前端控制器（自动识别 /v1/ API 路径）
+    RewriteRule ^ public/index.php [L]
+</IfModule>
