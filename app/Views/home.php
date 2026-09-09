@@ -194,7 +194,7 @@ $latest = $downloads[0] ?? null;
       <?php else: ?>
         <a class="btn btn-primary" href="#" onclick="return false">APK 即将发布</a>
       <?php endif; ?>
-      <a class="btn btn-ghost" href="<?= htmlspecialchars($sourceUrl) ?>">⌥ 服务端源码（zip）</a>
+      <a class="btn btn-ghost" href="<?= htmlspecialchars($sourceUrl) ?>" target="_blank">⌥ 服务端源码（Github）</a>
     </div>
     <div class="hero-meta">
       最新版本 <b>v<?= $latest ? htmlspecialchars($latest['version']) : '—' ?></b>
@@ -274,7 +274,7 @@ GET  /v1/vault         读取最新密文快照
 POST /v1/vault         乐观并发写入（版本号递增）
 GET  /v1/vault/history 历史归档（10 版 / 30 天）</pre>
       </div>
-      <a class="btn btn-ghost" href="<?= htmlspecialchars($sourceUrl) ?>">⬇ 下载服务端源码 zip</a>
+      <a class="btn btn-ghost" href="<?= htmlspecialchars($sourceUrl) ?>" TARGET="_blank">⬇ 下载服务端源码 GitHub</a>
     </div>
   </div>
 </section>

@@ -26,26 +26,11 @@ final class IndexController extends Controller
         $vars = [
             'downloads'   => $downloads,
             'apkCount'    => count($downloads),
-            'sourceUrl'   => $this->url('source'),
+            'sourceUrl'   => "https://github.com/zc0350/twofa_server",
             'genAt'       => date('Y-m-d H:i'),
         ];
         extract($vars, EXTR_SKIP); // 模板内直接以裸变量使用
         require SERVER_ROOT . '/app/Views/home.php';
-    }
-
-    /** 服务端源码实时打包下载（含说明文件，永不包含 .env 等敏感文件） */
-    public function source(): void
-    {
-        $zipPath = $this->buildSourceZip();
-        $name = 'fengxin-2fa-server-source-' . date('Ymd-His') . '.zip';
-
-        header('Content-Type: application/zip');
-        header('Content-Disposition: attachment; filename="' . $name . '"');
-        header('Content-Length: ' . (string) filesize($zipPath));
-        header('Cache-Control: no-store');
-        readfile($zipPath);
-        @unlink($zipPath); // 一次性下载，不落盘留存
-        exit;
     }
 
     /** @return array<int, array{version:string,href:string,sizeMb:string,date:string}> 按版本倒序 */
@@ -74,86 +59,5 @@ final class IndexController extends Controller
         $base = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
         $base = $base === '/' || $base === '.' ? '' : $base;
         return $base . '/' . $path;
-    }
-
-    private function buildSourceZip(): string
-    {
-        $zipPath = tempnam(sys_get_temp_dir(), 'fxsrc_');
-        if ($zipPath === false) {
-            $this->fail(500, '源码打包失败');
-        }
-        $zip = new \ZipArchive();
-        if ($zip->open($zipPath, \ZipArchive::OVERWRITE) !== true) {
-            $this->fail(500, '源码打包失败');
-        }
-
-        $root = SERVER_ROOT;
-        $prefixLen = strlen($root) + 1;
-        $count = 0;
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
-        );
-        foreach ($iterator as $item) {
-            /** @var \SplFileInfo $item */
-            if (!$item->isFile()) {
-                continue;
-            }
-            $rel = str_replace('\\', '/', substr($item->getPathname(), $prefixLen));
-            if ($this->isExcluded($rel)) {
-                continue;
-            }
-            $zip->addFile($item->getPathname(), 'fengxin-2fa-server/' . $rel);
-            $count++;
-        }
-        $zip->addFromString('fengxin-2fa-server/README.txt', $this->sourceReadmeText());
-        $zip->close();
-
-        if ($count === 0) {
-            @unlink($zipPath);
-            $this->fail(500, '源码打包失败');
-        }
-        return $zipPath;
-    }
-
-    private function isExcluded(string $rel): bool
-    {
-        if (strncmp(basename($rel), '.env', 4) === 0) {
-            return true;
-        }
-        foreach (self::SOURCE_EXCLUDES as $pattern) {
-            if (strpos($rel, $pattern) !== false) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private function sourceReadmeText(): string
-    {
-        return implode("\n", [
-            '风信密码器 · 服务端源代码说明',
-            '==============================',
-            '',
-            '本包为当前部署的服务端源码快照（自动生成），已去除：',
-            '  - .env（密钥配置，请勿分发）',
-            '  - runtime/（运行缓存）',
-            '  - public/downloads/（APK 安装包，请在官网页面下载）',
-            '',
-            '部署步骤：',
-            '  1. PHP 8.1+（pdo_mysql、openssl、zip 扩展）+ MySQL 5.7+/8.0',
-            '  2. 导入 sql/init.sql 完成建库建表',
-            '  3. 复制 .example.env 为 .env，填写数据库连接与令牌密钥',
-            '  4. nginx/Apache 将文档根指向 public/；开发调试可运行：php -S 0.0.0.0:8000 router.php',
-            '  5. 自检：GET /v1/vault 应返回 401（未登录）；根路径应返回项目宣传页',
-            '',
-            '接口一览（JSON API，Bearer 令牌鉴权）：',
-            '  POST /v1/auth/register|verify|login|password-code|reset-password|change-password',
-            '  GET  /v1/vault  · 读取最新加密快照',
-            '  POST /v1/vault  · 乐观并发写入（baseVersion + 版本号单调递增）',
-            '  GET  /v1/vault/history · 历史归档（保留最近 10 版或 30 天）',
-            '',
-            '安全模型：验证码数据客户端 AES-256-GCM 加密后再上传，服务器零知识存储；',
-            '历史归档同为密文，管理员无法读取内容。',
-        ]);
     }
 }
