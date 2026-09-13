@@ -79,6 +79,15 @@ $latest = $downloads[0] ?? null;
     font-size: 15.5px; font-weight: 600; transition: transform .15s, box-shadow .15s;
   }
   .btn:hover { transform: translateY(-2px); }
+  /* 下载二维码（白底卡片，保证暗色二维码可扫） */
+  .hero-qr { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .qrbox {
+    background: #fff; padding: 10px; border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .38); line-height: 0;
+  }
+  .qrbox img { display: block; width: 160px; height: 160px; }
+  .qr-cap { font-size: 13px; color: var(--text-2); }
+  .qr-cap a { color: var(--accent-2); text-decoration: none; }
   .btn-primary { background: linear-gradient(135deg, var(--accent), #2f63e0); color: #fff; box-shadow: 0 10px 26px rgba(61, 123, 255, .35); }
   .btn-ghost { border: 1px solid rgba(255, 255, 255, .18); color: var(--text); background: rgba(255, 255, 255, .05); }
   .hero-meta { margin-top: 16px; font-size: 13px; color: var(--text-2); }
@@ -196,6 +205,12 @@ $latest = $downloads[0] ?? null;
       <?php endif; ?>
       <a class="btn btn-ghost" href="<?= htmlspecialchars($sourceUrl) ?>" target="_blank">⌥ 服务端源码（Github）</a>
     </div>
+    <div class="hero-qr">
+      <div id="qrbox" class="qrbox"></div>
+      <p class="qr-cap">📲 手机扫码 · 浏览器直达下载页
+        <a href="<?= htmlspecialchars($apkUrl ?? '') ?>" target="_blank">或点此链接</a>
+      </p>
+    </div>
     <div class="hero-meta">
       最新版本 <b>v<?= $latest ? htmlspecialchars($latest['version']) : '—' ?></b>
       · 已收录 <?= (int) $apkCount ?> 个版本
@@ -286,7 +301,21 @@ GET  /v1/vault/history 历史归档（10 版 / 30 天）</pre>
   </div>
 </footer>
 
+<script src="<?= htmlspecialchars($qrcodeJs) ?>"></script>
 <script>
+  // 下载二维码：编码最新版 APK 的绝对地址（SVG/图片由本地库生成，无外部请求）
+  (function () {
+    var url = <?= json_encode($apkUrl ?? '', JSON_UNESCAPED_SLASHES) ?>;
+    var box = document.getElementById('qrbox');
+    if (url && box && typeof QRCode !== 'undefined') {
+      new QRCode(box, {
+        text: url, width: 160, height: 160,
+        colorDark: '#0b1020', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  })();
+
   // 导航锚点兜底：不依赖浏览器对 #片段跳转的原生处理（部分内嵌 WebView / 代理会吞掉），
   // 统一改为 scrollIntoView 平滑滚动；目标段已用 scroll-margin-top 避开吸顶导航。
   (function () {

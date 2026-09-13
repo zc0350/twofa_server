@@ -23,10 +23,13 @@ final class IndexController extends Controller
         header('Cache-Control: no-cache');
 
         $downloads = $this->listApks();
+        $apkUrl = $downloads ? $this->absoluteUrl($downloads[0]['href']) : null;
         $vars = [
             'downloads'   => $downloads,
             'apkCount'    => count($downloads),
             'sourceUrl'   => "https://github.com/zc0350/twofa_server",
+            'apkUrl'      => $apkUrl,
+            'qrcodeJs'    => $this->url('qrcode.min.js'),
             'genAt'       => date('Y-m-d H:i'),
         ];
         extract($vars, EXTR_SKIP); // 模板内直接以裸变量使用
@@ -59,5 +62,21 @@ final class IndexController extends Controller
         $base = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
         $base = $base === '/' || $base === '.' ? '' : $base;
         return $base . '/' . $path;
+    }
+
+    /** 绝对 URL（二维码内容需要完整地址；兼容 HTTPS 反代与子目录部署） */
+    private function absoluteUrl(string $path): string
+    {
+        $scheme = 'http';
+        $https = (string) ($_SERVER['HTTPS'] ?? '');
+        if ($https !== '' && $https !== 'off') {
+            $scheme = 'https';
+        }
+        $proto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        if (strpos($proto, 'https') === 0) {
+            $scheme = 'https';
+        }
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+        return $scheme . '://' . $host . $path;
     }
 }
