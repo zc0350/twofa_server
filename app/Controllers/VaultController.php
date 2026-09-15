@@ -64,9 +64,15 @@ final class VaultController extends Controller
         }
 
         $pdo = Database::pdo();
+        // 事务一致性：MySQL 用行锁（FOR UPDATE）防并发 push；SQLite 为单写者文件库，
+        // 事务本身即写锁语义（WAL 下写事务串行），无需（也不支持）行级锁
+        $sqlite = Database::isSqlite();
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare('SELECT version, kdf_salt, cipher FROM vaults WHERE user_id = ? FOR UPDATE');
+            $select = $sqlite
+                ? 'SELECT version, kdf_salt, cipher FROM vaults WHERE user_id = ?'
+                : 'SELECT version, kdf_salt, cipher FROM vaults WHERE user_id = ? FOR UPDATE';
+            $stmt = $pdo->prepare($select);
             $stmt->execute([$userId]);
             $vault = $stmt->fetch() ?: null;
             $current = $vault ? (int) $vault['version'] : 0;

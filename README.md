@@ -53,8 +53,9 @@ server/
 │   └── Services/
 │       ├── Mailer.php        # 验证码邮件（HTML + 纯文本双格式）
 │       └── SmtpClient.php    # 最小 SMTP 客户端（SSL/STARTTLS/AUTH LOGIN）
-├── sql/init.sql              # 建表脚本
-├── runtime/cache/            # 文件缓存数据（自动创建，勿公开访问）
+├── sql/init.sql               # MySQL 建表脚本
+├── sql/init.sqlite.sql        # SQLite 建表脚本（sqlite 驱动首次运行自动执行）
+├── runtime/cache/             # 文件缓存数据（自动创建，勿公开访问）
 ├── .env                      # 环境配置（不入库、不打包）
 └── .example.env              # 环境配置模板
 ```
@@ -139,11 +140,23 @@ gradlew assembleRelease
 
 ### 初始化数据库
 
+两种驱动任选其一（默认 MySQL）：线上使用 `DB_DRIVER=mysql`，本地测试或轻量自部署用 `DB_DRIVER=sqlite`。
+
+**MySQL：**
+
 ```bash
 mysql -u root -p < sql/init.sql
 ```
 
-> 全新部署只需执行 `init.sql`。
+> MySQL 全新部署需先执行 `init.sql` 建库建表。
+
+**SQLite：**
+
+```bash
+# 无需手动建表：DB_DRIVER=sqlite 首次连接时自动按 sql/init.sqlite.sql 建表
+# （库文件默认 runtime/twofa.sqlite）；如需手动初始化：
+sqlite3 runtime/twofa.sqlite < sql/init.sqlite.sql
+```
 
 ### 配置环境
 
@@ -153,7 +166,7 @@ cp .example.env .env
 
 编辑 `.env` 填写两类凭据：
 
-- **数据库**：`DB_HOST / DB_NAME / DB_USER / DB_PASS`；
+- **数据库**：`DB_DRIVER` 选 `mysql`（默认）或 `sqlite`——MySQL 需 `DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASS`；SQLite 仅需 `DB_DRIVER=sqlite`（可选 `DB_FILE` 指定库文件路径，默认 `runtime/twofa.sqlite`，首次连接自动建表）；
 - **SMTP 邮箱**（注册验证码发送，必填）：`SMTP_HOST`（如 smtp.qq.com）、`SMTP_PORT`（SSL 465 / TLS 587）、`SMTP_SECURE`（ssl/tls）、`SMTP_USER`、`SMTP_PASS`（QQ 邮箱填 16 位授权码而非登录密码）、`SMTP_FROM`、`SMTP_FROM_NAME`。
 
 生产环境务必设置 `APP_DEBUG=false`，并使用 HTTPS 域名。
