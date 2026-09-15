@@ -104,6 +104,12 @@ server {
     root /var/www/twofa/server/public;   # 前端文档根
     index index.php;
 
+    # 禁止下载数据库文件（SQLite 的 .db/.sqlite 及其 WAL/SHM 伴生文件）
+    location ~* \.(db|sqlite|sqlite3|db-wal|db-shm)$ {
+        deny all;
+        return 403;
+    }
+
     # 动态入口（宣传页 / 源码下载 / API）
     location / {
         try_files $uri $uri/ /index.php?$query_string;
@@ -119,6 +125,8 @@ server {
 
 > 文档根锁定在 `public/` 后，`app/`、`sql/`、`.env` 等内部文件天然不可访问；
 > `public/downloads/` 内的 APK 直接静态下载，无需额外配置。
+> 若启用 SQLite（`DB_DRIVER=sqlite`），数据库文件建议放在 `runtime/`（文档根之外）
+> 而非 `public/`；上述 `deny all` 规则作为二次防线，防止 .db/.sqlite 文件被 HTTP 直接下载。
 
 ### 原生 APK 构建
 
