@@ -29,6 +29,7 @@ final class IndexController extends Controller
             'apkCount'    => count($downloads),
             'sourceUrl'   => "https://github.com/zc0350/twofa_server",
             'apkUrl'      => $apkUrl,
+            'h5Url'       => $this->url('h5/'),
             'qrcodeJs'    => $this->url('qrcode.min.js'),
             'genAt'       => date('Y-m-d H:i'),
         ];

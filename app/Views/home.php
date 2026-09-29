@@ -207,6 +207,7 @@ $latest = $downloads[0] ?? null;
         <a class="btn btn-primary" href="#" onclick="return false">APK 即将发布</a>
       <?php endif; ?>
       <a class="btn btn-ghost" href="<?= htmlspecialchars($sourceUrl) ?>" target="_blank">⌥ 服务端源码（Github）</a>
+      <a class="btn btn-ghost" href="<?= htmlspecialchars($h5Url) ?>" target="_blank">🌐 H5 在线客户端</a>
     </div>
     <div class="hero-qr">
       <div class="qr-item">
