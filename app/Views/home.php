@@ -194,7 +194,7 @@ $latest = $downloads[0] ?? null;
 <!-- Hero -->
 <section class="hero">
   <div class="wrap">
-    <div class="badge">🔐 端到端加密 · 服务器零知识</div>
+    <div class="badge">🔐 端到端加密 · 服务器也看不到你的数据</div>
     <h1>两步验证，<span class="accent">安心随身</span></h1>
     <p class="sub">
       风信密码器是一款 Android 原生两步验证（TOTP）应用：扫码绑定、离线取码，
@@ -238,7 +238,7 @@ $latest = $downloads[0] ?? null;
     <p class="lead">小而克制，只做好一件事：把认证码这件事做得安全、可靠、不打扰。</p>
     <div class="grid">
       <div class="card"><div class="ico">⚡</div><h3>离线取码，零网络依赖</h3><p>TOTP 算法完全在本机运行，飞行模式也能正常出码；云同步只是可选项，数据主权始终在设备上。</p></div>
-      <div class="card"><div class="ico">🔐</div><h3>端到端加密云同步</h3><p>客户端 AES-256-GCM 加密后再上传，服务器只存密文与版本号，无法读取任何账号内容——零知识架构。</p></div>
+      <div class="card"><div class="ico">🔐</div><h3>端到端加密云同步</h3><p>验证码在你手机上加密后才上传，服务器只存密文与版本号，你的账号和验证码永远只有你自己能看。</p></div>
       <div class="card"><div class="ico">📷</div><h3>扫码即绑，无需 GMS</h3><p>内置离线条码识别引擎，不依赖 Google Play 服务，华为等国产设备开箱即用。</p></div>
       <div class="card"><div class="ico">🛡</div><h3>PIN · 生物识别双重守护</h3><p>离开应用自动锁定，支持 4-8 位 PIN 与指纹/人脸解锁；长时间闲置自动重新加锁，防窥防误触。</p></div>
       <div class="card"><div class="ico">🔄</div><h3>版本历史可回滚</h3><p>每次同步均保存版本快照（保留最近 10 版 / 30 天），误改误删可从历史版本一键恢复，数据多一重安全网。</p></div>
