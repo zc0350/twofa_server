@@ -241,7 +241,7 @@ $latest = $downloads[0] ?? null;
       <div class="card"><div class="ico">🔐</div><h3>端到端加密云同步</h3><p>验证码在你手机上加密后才上传，服务器只存密文与版本号，你的账号和验证码永远只有你自己能看。</p></div>
       <div class="card"><div class="ico">📷</div><h3>扫码即绑，无需 GMS</h3><p>内置离线条码识别引擎，不依赖 Google Play 服务，华为等国产设备开箱即用。</p></div>
       <div class="card"><div class="ico">🛡</div><h3>PIN · 生物识别双重守护</h3><p>离开应用自动锁定，支持 4-8 位 PIN 与指纹/人脸解锁；长时间闲置自动重新加锁，防窥防误触。</p></div>
-      <div class="card"><div class="ico">🔄</div><h3>版本历史可回滚</h3><p>每次同步均保存版本快照（保留最近 10 版 / 30 天），误改误删可从历史版本一键恢复，数据多一重安全网。</p></div>
+      <div class="card"><div class="ico">🔄</div><h3>版本历史可回滚</h3><p>每次同步均保存版本快照（保留最近 10 版），误改误删可从历史版本一键恢复，数据多一重安全网。</p></div>
       <div class="card"><div class="ico">🧩</div><h3>迁移自由，随时带走</h3><p>支持加密导出 / 明文导出 / 批量导入，换机迁移完整一致，不绑定任何厂商生态。</p></div>
     </div>
   </div>
@@ -256,7 +256,7 @@ $latest = $downloads[0] ?? null;
       <div class="step"><h4>下载 APK</h4><p>在上方点击下载按钮获取最新安装包（约 6 MB，兼容 Android 8.0+）。</p></div>
       <div class="step"><h4>允许安装未知来源应用</h4><p>安装时系统会提示未知来源，选择「继续安装」即可（仅限本安装包）。</p></div>
       <div class="step"><h4>扫码或手动添加账号</h4><p>选择「扫码添加」对准服务商提供的二维码，或手动输入秘钥（Secret）。</p></div>
-      <div class="step"><h4>开启同步（可选）</h4><p>注册账号后开启云端同步，多设备自动合并；也可保持完全离线。「极简模式」</p></div>
+      <div class="step"><h4>开启同步（可选）</h4><p>注册账号后开启云端同步，多设备自动合并；也可保持完全离线使用。</p></div>
     </div>
   </div>
 </section>
@@ -293,13 +293,13 @@ $latest = $downloads[0] ?? null;
     <div class="source">
       <div class="txt">
         <h3>fengxin-2fa-server</h3>
-        <p>PHP 8.1+ · MySQL · 约 2 千行 · 无框架、无 Composer 依赖。打包即所得，不含任何敏感信息。</p>
+        <p>PHP 8.4+ · MySQL · 约 2 千行 · 无框架、无 Composer 依赖。打包即所得，不含任何敏感信息。</p>
         <pre># 本地运行
 php -S 0.0.0.0:8000 router.php
 # 接口一览
 GET  /v1/vault         读取最新密文快照
 POST /v1/vault         乐观并发写入（版本号递增）
-GET  /v1/vault/history 历史归档（10 版 / 30 天）</pre>
+GET  /v1/vault/history 历史归档（最近 10 版）</pre>
       </div>
       <a class="btn btn-ghost" href="<?= htmlspecialchars($sourceUrl) ?>" TARGET="_blank">⬇ 下载服务端源码 GitHub</a>
     </div>
