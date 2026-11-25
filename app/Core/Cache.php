@@ -88,4 +88,72 @@ final class Cache
         fclose($fp);
         return $new;
     }
+
+    /**
+     * 原子读-改-写（flock 独占锁）。
+     *
+     * 回调签名：fn(mixed $value, int $expires, mixed &$write): mixed
+     *   - $value   当前值，键不存在或已过期时为 null
+     *   - $expires 当前绝对过期时间戳（0 = 永不过期；不存在/已过期时为 0）
+     *   - &$write  写回指令：null = 不写回；'DELETE' = 删除；
+     *              ['value' => 新值, 'expires' => 绝对过期时间戳] = 写回
+     * 回调返回值原样透传，业务层据此决定响应。
+     *
+     * 用途：验证码「检查尝试次数 → 比对 → 递增 → 删除」必须在同一临界区内完成，
+     * 否则并发请求同时读到旧计数，会绕过尝试次数上限。
+     */
+    public static function update(string $key, callable $fn)
+    {
+        $file = self::file($key);
+        $fp = fopen($file . '.lock', 'c');
+        if (!$fp) {
+            // 文件锁不可用时退化为非原子读-改-写（与 increment 同策略）
+            [$value, $expires] = self::readLockedEntry($file);
+            $write = null;
+            $result = $fn($value, $expires, $write);
+            self::applyWrite($file, $write);
+            return $result;
+        }
+        flock($fp, LOCK_EX);
+        try {
+            [$value, $expires] = self::readLockedEntry($file);
+            $write = null;
+            $result = $fn($value, $expires, $write);
+            self::applyWrite($file, $write);
+            return $result;
+        } finally {
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        }
+    }
+
+    /** @return array{0: mixed, 1: int} [值, 绝对过期时间戳] */
+    private static function readLockedEntry(string $file): array
+    {
+        $raw = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        $value = is_array($raw) && array_key_exists('value', $raw) ? $raw['value'] : null;
+        $expires = is_array($raw) && isset($raw['expires']) ? (int) $raw['expires'] : 0;
+        if ($expires !== 0 && $expires < time()) {
+            @unlink($file);
+            return [null, 0];
+        }
+        return [$value, $expires];
+    }
+
+    /** @param mixed $write */
+    private static function applyWrite(string $file, $write): void
+    {
+        if ($write === 'DELETE') {
+            @unlink($file);
+            return;
+        }
+        if (is_array($write) && array_key_exists('value', $write)) {
+            $expires = (int) ($write['expires'] ?? 0);
+            file_put_contents(
+                $file,
+                json_encode(['expires' => $expires, 'value' => $write['value']], JSON_UNESCAPED_UNICODE),
+                LOCK_EX
+            );
+        }
+    }
 }

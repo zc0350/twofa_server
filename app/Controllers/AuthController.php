@@ -114,41 +114,58 @@ private const LOGIN_FAIL_LIMIT = 5;
         }
 
         $key = 'reg_pending_' . md5($email);
-        $pending = Cache::get($key);
-        if (!is_array($pending)) {
+        $outcome = Cache::update($key, function ($value, int $expires, &$write) use ($code, $email): array {
+            if (!is_array($value)) {
+                return ['status' => 'gone'];
+            }
+            if (time() > (int) ($value['expires_at'] ?? 0)) {
+                $write = 'DELETE';
+                return ['status' => 'expired'];
+            }
+            $attempts = (int) ($value['attempts'] ?? 0);
+            if ($attempts >= self::VERIFY_MAX_ATTEMPTS) {
+                $write = 'DELETE';
+                return ['status' => 'too_many'];
+            }
+            if (!hash_equals((string) ($value['code_hash'] ?? ''), hash('sha256', $code . '|' . $email))) {
+                $value['attempts'] = $attempts + 1;
+                // 沿用原绝对过期时间：尝试验证码不会延长验证码有效期
+                $write = ['value' => $value, 'expires' => $expires];
+                return ['status' => 'wrong', 'left' => self::VERIFY_MAX_ATTEMPTS - $attempts - 1];
+            }
+            // 校验通过即消费掉本次验证码，避免并发重复提交
+            $write = 'DELETE';
+            return ['status' => 'ok', 'password_hash' => (string) ($value['password_hash'] ?? '')];
+        });
+
+        $status = $outcome['status'];
+        if ($status === 'gone') {
             return $this->fail(410, '验证码已过期或不存在，请重新注册');
         }
-        if (time() > (int) $pending['expires_at']) {
-            Cache::delete($key);
+        if ($status === 'expired') {
             return $this->fail(410, '验证码已过期，请重新注册');
         }
-        if ((int) $pending['attempts'] >= self::VERIFY_MAX_ATTEMPTS) {
-            Cache::delete($key);
+        if ($status === 'too_many') {
             return $this->fail(429, '验证尝试次数过多，请重新注册');
         }
-
-        if (!hash_equals((string) $pending['code_hash'], hash('sha256', $code . '|' . $email))) {
-            $pending['attempts'] = (int) $pending['attempts'] + 1;
-            Cache::set($key, $pending, max(1, (int) $pending['expires_at'] - time()));
-            $left = self::VERIFY_MAX_ATTEMPTS - (int) $pending['attempts'];
+        if ($status === 'wrong') {
+            $left = (int) $outcome['left'];
             return $this->fail(401, '验证码不正确' . ($left > 0 ? '，还可尝试 ' . $left . ' 次' : '，请重新注册'));
         }
 
-        // 并发兜底：捕获 UNIQUE 约束冲突（两个请求同时通过上方检查时，第二个到此失败）
+        // 并发兜底：已通过验证码校验但账号同时被其它请求创建时，由 UNIQUE 约束拦截
         try {
             Database::exec(
                 'INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)',
-                [$email, (string) $pending['password_hash'], date('Y-m-d H:i:s')]
+                [$email, (string) $outcome['password_hash'], date('Y-m-d H:i:s')]
             );
         } catch (\PDOException $e) {
             if ($e->getCode() === '23000' || strpos($e->getMessage(), 'Duplicate entry') !== false) {
-                Cache::delete($key);
                 return $this->fail(409, '该邮箱已注册');
             }
             throw $e;
         }
         $userId = (int) Database::pdo()->lastInsertId();
-        Cache::delete($key);
 
         return ['userId' => $userId, 'token' => $this->issueToken($userId), 'version' => 0];
     }
@@ -264,25 +281,39 @@ private const LOGIN_FAIL_LIMIT = 5;
     private function verifyPasswordCode(string $email, string $code): ?array
     {
         $key = 'pwd_reset_' . md5($email);
-        $pending = Cache::get($key);
-        if (!is_array($pending)) {
+        $outcome = Cache::update($key, function ($value, int $expires, &$write) use ($code, $email): array {
+            if (!is_array($value)) {
+                return ['status' => 'gone'];
+            }
+            if (time() > (int) ($value['expires_at'] ?? 0)) {
+                $write = 'DELETE';
+                return ['status' => 'expired'];
+            }
+            $attempts = (int) ($value['attempts'] ?? 0);
+            if ($attempts >= self::PWD_MAX_ATTEMPTS) {
+                $write = 'DELETE';
+                return ['status' => 'too_many'];
+            }
+            if (!hash_equals((string) ($value['code_hash'] ?? ''), hash('sha256', $code . '|' . $email))) {
+                $value['attempts'] = $attempts + 1;
+                $write = ['value' => $value, 'expires' => $expires];
+                return ['status' => 'wrong', 'left' => self::PWD_MAX_ATTEMPTS - $attempts - 1];
+            }
+            $write = 'DELETE';
+            return ['status' => 'ok'];
+        });
+
+        $status = $outcome['status'];
+        if ($status === 'gone' || $status === 'expired') {
             return [$this->fail(410, '验证码已过期或不存在，请重新获取')];
         }
-        if (time() > (int) $pending['expires_at']) {
-            Cache::delete($key);
-            return [$this->fail(410, '验证码已过期，请重新获取')];
-        }
-        if ((int) $pending['attempts'] >= self::PWD_MAX_ATTEMPTS) {
-            Cache::delete($key);
+        if ($status === 'too_many') {
             return [$this->fail(429, '验证尝试次数过多，请重新获取')];
         }
-        if (!hash_equals((string) $pending['code_hash'], hash('sha256', $code . '|' . $email))) {
-            $pending['attempts'] = (int) $pending['attempts'] + 1;
-            Cache::set($key, $pending, max(1, (int) $pending['expires_at'] - time()));
-            $left = self::PWD_MAX_ATTEMPTS - (int) $pending['attempts'];
+        if ($status === 'wrong') {
+            $left = (int) $outcome['left'];
             return [$this->fail(401, '验证码不正确' . ($left > 0 ? '，还可尝试 ' . $left . ' 次' : '，请重新获取'))];
         }
-        Cache::delete($key);
         return null;
     }
 
